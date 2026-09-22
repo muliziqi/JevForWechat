@@ -27,7 +27,7 @@ jobs:
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -39,40 +39,19 @@ jobs:
           rm -rf project
           mkdir -p project
           unzip -q JevForWechat-GitHub-A0.zip -d project
-          echo "Extracted files:"
-          find project -maxdepth 2 -type f | sort
 
-      - name: Detect project directory
-        id: detect
+      - name: Fix compile SDK
         run: |
-          if [ -f "project/JevForWechat-GitHub-A0/settings.gradle.kts" ] || [ -f "project/JevForWechat-GitHub-A0/settings.gradle" ]; then
-            echo "dir=project/JevForWechat-GitHub-A0" >> "$GITHUB_OUTPUT"
-          elif [ -f "project/settings.gradle.kts" ] || [ -f "project/settings.gradle" ]; then
-            echo "dir=project" >> "$GITHUB_OUTPUT"
-          else
-            echo "Could not find Gradle project"
-            find project -maxdepth 3 -type f | sort
-            exit 1
-          fi
+          sed -i 's/compileSdk = 37/compileSdk = 36/' \
+            project/JevForWechat-GitHub-A0/app/build.gradle.kts
 
       - name: Build APK
-        working-directory: ${{ steps.detect.outputs.dir }}
+        working-directory: project/JevForWechat-GitHub-A0
         run: |
           gradle :app:assembleDebug --stacktrace --no-daemon
-
-      - name: Find APK
-        id: apk
-        run: |
-          APK_PATH=$(find "${{ steps.detect.outputs.dir }}" -path "*/build/outputs/apk/debug/*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "APK not found"
-            exit 1
-          fi
-          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "Found APK: $APK_PATH"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JevForWechat-A0-debug
-          path: ${{ steps.apk.outputs.path }}
+          path: project/JevForWechat-GitHub-A0/app/build/outputs/apk/debug/app-debug.apk
