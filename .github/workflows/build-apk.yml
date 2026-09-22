@@ -1,4 +1,4 @@
-name: Build JevForWechat APK
+   name: Build JevForWechat APK
 
 on:
   workflow_dispatch:
@@ -18,18 +18,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -38,15 +36,43 @@ jobs:
 
       - name: Extract project
         run: |
-          mkdir project
-          unzip JevForWechat-GitHub-A0.zip -d project
+          rm -rf project
+          mkdir -p project
+          unzip -q JevForWechat-GitHub-A0.zip -d project
+          echo "Extracted files:"
+          find project -maxdepth 2 -type f | sort
+
+      - name: Detect project directory
+        id: detect
+        run: |
+          if [ -f "project/JevForWechat-GitHub-A0/settings.gradle.kts" ] || [ -f "project/JevForWechat-GitHub-A0/settings.gradle" ]; then
+            echo "dir=project/JevForWechat-GitHub-A0" >> "$GITHUB_OUTPUT"
+          elif [ -f "project/settings.gradle.kts" ] || [ -f "project/settings.gradle" ]; then
+            echo "dir=project" >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not find Gradle project"
+            find project -maxdepth 3 -type f | sort
+            exit 1
+          fi
 
       - name: Build APK
-        working-directory: project/JevForWechat-GitHub-A0
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        working-directory: ${{ steps.detect.outputs.dir }}
+        run: |
+          gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Find APK
+        id: apk
+        run: |
+          APK_PATH=$(find "${{ steps.detect.outputs.dir }}" -path "*/build/outputs/apk/debug/*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "APK not found"
+            exit 1
+          fi
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "Found APK: $APK_PATH"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JevForWechat-A0-debug
-          path: project/JevForWechat-GitHub-A0/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.apk.outputs.path }}   
