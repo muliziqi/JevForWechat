@@ -1,4 +1,4 @@
-   name: Build JevForWechat APK
+name: Build JevForWechat APK
 
 on:
   workflow_dispatch:
@@ -75,4 +75,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: JevForWechat-A0-debug
-          path: ${{ steps.apk.outputs.path }}   
+          path: ${{ steps.apk.outputs.path }}
