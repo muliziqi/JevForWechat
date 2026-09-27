@@ -14,6 +14,10 @@ final class JevLog {
         Log.e(TAG, msg, t);
     }
 
+    static void e(String msg) {
+        Log.e(TAG, msg);
+    }
+
     private JevLog() {
     }
 }

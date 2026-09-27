@@ -54,10 +54,14 @@ public final class JevConfig {
         }
 
         JSONObject toJson() {
-            return new JSONObject()
-                    .put("apiUrl", apiUrl == null ? "" : apiUrl)
-                    .put("apiKey", apiKey == null ? "" : apiKey)
-                    .put("model", model == null ? "" : model);
+            JSONObject o = new JSONObject();
+            try {
+                o.put("apiUrl", apiUrl == null ? "" : apiUrl);
+                o.put("apiKey", apiKey == null ? "" : apiKey);
+                o.put("model", model == null ? "" : model);
+            } catch (Throwable ignored) {
+            }
+            return o;
         }
     }
 
@@ -67,6 +71,10 @@ public final class JevConfig {
     private JevConfig(Endpoint analysis, Endpoint reply) {
         this.analysis = analysis;
         this.reply = reply;
+    }
+
+    boolean hasReply() {
+        return reply != null && reply.valid();
     }
 
     public static JevConfig load(Context ctx) {
@@ -187,9 +195,10 @@ public final class JevConfig {
                     .put("apiUrl", DEEPSEEK_URL)
                     .put("apiKey", "在这里粘贴你的 DeepSeek Key（不需要回复功能可整段删掉）")
                     .put("model", DEEPSEEK_MODEL));
+            return o.toString(2);
         } catch (Throwable ignored) {
+            return "{}";
         }
-        return o.toString(2);
     }
 
     static int dp(Context c, int v) {
