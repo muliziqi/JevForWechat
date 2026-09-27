@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="jev_collapsed" type="id" />
+    <item name="jev_pending" type="id" />
+</resources>

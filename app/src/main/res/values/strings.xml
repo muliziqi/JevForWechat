@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Jev for WeChat</string>
+    <string name="module_description">微信无 Root Jev 决策分析模块（A1）：对方消息下方自动显示意图概率 / 危险等级 / 建议动作，Jev × DeepSeek</string>
+</resources>
