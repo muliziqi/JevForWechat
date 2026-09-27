@@ -208,9 +208,11 @@ public final class ModuleMain extends XposedModule {
                 return;
             }
             Toast.makeText(base, "Jev 分析中…", Toast.LENGTH_SHORT).show();
-            JevEngine.analyzeAsync(cfg, ChatItemProcessor.latestContext(text), text, result ->
-                    MAIN.post(() -> showAnalysisDialog(base,
-                            result.error != null ? "分析失败：" + result.error : result.text)));
+            JevEngine.analyzeAsync(cfg, ChatItemProcessor.latestContext(text), text, result -> {
+                if (!result.finalResult) return; // 等 DeepSeek 回复阶段结束后只弹一次
+                MAIN.post(() -> showAnalysisDialog(base,
+                        result.error != null ? "分析失败：" + result.error : result.text));
+            });
         } catch (Throwable t) {
             JevLog.e("one-shot analysis failed", t);
         }

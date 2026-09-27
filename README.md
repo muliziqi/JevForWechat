@@ -28,6 +28,7 @@ A1 = A0 的「长按菜单探针」跑通之后的正式功能版：
    先翻聊天记录再回她
    DeepSeek 建议回复
    我记得，你说周末想吃火锅对吧
+   （分析由 Jev 出，回复由 DeepSeek 出）
    ```
 
    - 点按卡片：折叠 / 展开详情；
@@ -37,27 +38,34 @@ A1 = A0 的「长按菜单探针」跑通之后的正式功能版：
 3. **手动分析**：长按任意消息 → 菜单里点「Jev分析」，弹窗显示分析结果（对旧消息也有用）。
 4. **设置**：长按任意消息 → 菜单里点「Jev设置」，粘贴 API 配置。
 
-## 接入 DeepSeek / Jev 决策模型
+## 双模型链路：Jev 分析 + DeepSeek 回复
 
-分析 = **Jev 决策 Prompt**（意图概率 / 危险等级 / 最佳动作 / 建议回复）跑在
-**任意 OpenAI Chat Completions 兼容接口**上。推荐两种：
-
-| 服务 | apiUrl | model |
-| --- | --- | --- |
-| DeepSeek 官方（推荐） | `https://api.deepseek.com/chat/completions` | `deepseek-chat` |
-| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | `deepseek/deepseek-chat` 等 |
+- **Jev 决策分析**：OpenRouter 的 `typesafe/jev-router`（TypeSafe 的 Jev 模型），输出意图概率 / 危险等级 / 最佳动作；
+- **DeepSeek 建议回复**：DeepSeek 官方接口（或 OpenRouter 上的 `deepseek/deepseek-chat`），单独起草一条可直接发送的回复，追加在卡片底部（分析先显示，回复稍后追加）。
 
 在微信里长按任意消息 → **Jev设置**，粘贴：
 
 ```json
 {
-  "apiUrl": "https://api.deepseek.com/chat/completions",
-  "apiKey": "sk-你的Key",
-  "model": "deepseek-chat"
+  "analysis": {
+    "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+    "apiKey": "sk-or-你的OpenRouter Key",
+    "model": "typesafe/jev-router"
+  },
+  "reply": {
+    "apiUrl": "https://api.deepseek.com/chat/completions",
+    "apiKey": "sk-你的DeepSeek Key",
+    "model": "deepseek-chat"
+  }
 }
 ```
 
-保存后回到聊天页即可。聊天内容只会发送到你配置的这个接口，不会经过其他服务器。
+说明：
+
+- 不需要回复功能 → 整段删掉 `reply`，卡片只显示 Jev 分析。
+- 只想用一个 Key → 把 `reply` 的 `apiUrl` 也填 OpenRouter，`model` 填 `deepseek/deepseek-chat`，`apiKey` 与 `analysis` 相同。
+- 也支持平铺格式 `{"apiUrl":..., "apiKey":..., "model":...}`（两个环节共用同一接口）。
+- 所有接口均为 OpenAI Chat Completions 兼容协议；聊天内容只发送到你自己配置的接口。
 
 ## 防误伤设计
 
@@ -70,11 +78,8 @@ A1 = A0 的「长按菜单探针」跑通之后的正式功能版：
 
 - JDK 17 / Gradle 9.6.0 / AGP 9.4.0 / compileSdk 36
 - 本地：Android Studio 打开工程直接 Build。
-- 手机党：推送到 GitHub 后，Actions 自动构建，进 run 记录下载 Artifact（`JevForWechat-A0-debug` 名称沿用旧工作流，内容为 A1 APK），
+- 手机党：推送到 GitHub 后，Actions 自动构建，进 run 记录下载 Artifact `JevForWechat-A1-debug`，
   解压得到 `app-debug.apk`。
-
-> 仓库根目录的 `JevForWechat-GitHub-A0.zip` 是当前 CI 的构建来源（旧工作流从 zip 解压构建），
-> 内容与根目录的 A1 工程保持一致；以后 CI 改为直接构建根目录工程后可删除。
 
 ## 无 Root 加载（LSPatch）
 
@@ -99,5 +104,7 @@ A1 = A0 的「长按菜单探针」跑通之后的正式功能版：
 ## 版本历史
 
 - **A0 (0.1.0)**：长按菜单注入「Jev分析」，点击 Toast 显示捕获文字。纯诊断，不联网。
-- **A1 (0.2.0)**：聊天页消息下方自动插入 Jev 分析卡片；接入 DeepSeek / OpenAI 兼容接口；
+- **A1 (0.2.0)**：聊天页消息下方自动插入 Jev 分析卡片；接入 OpenAI 兼容接口；
   「Jev设置」图形化配置；「Jev分析」升级为完整分析弹窗。
+- **A1.1 (0.2.1)**：双模型链路——Jev（OpenRouter `typesafe/jev-router`）负责决策分析，
+  DeepSeek 负责起草建议回复；兼容平铺/嵌套两种配置；Jev 原生文本输出兜底解析。
